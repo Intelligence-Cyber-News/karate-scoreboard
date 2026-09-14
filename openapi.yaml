@@ -1,0 +1,562 @@
+openapi: 3.0.3
+info:
+  title: Karate Scoreboard API
+  version: 0.1.0
+  description: >
+    API for the karate tournament scoreboard. Derived from the frontend's
+    mocked backend (frontend/src/api/client.js) to keep the contract
+    consistent with what the UI already expects.
+
+servers:
+  - url: /api
+
+paths:
+  /divisions:
+    get:
+      summary: List all divisions
+      operationId: listDivisions
+      responses:
+        "200":
+          description: List of divisions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Division"
+
+  /divisions/{divisionId}/bracket:
+    get:
+      summary: Get the pool standings and elimination bracket for a division
+      operationId: getBracket
+      parameters:
+        - $ref: "#/components/parameters/DivisionId"
+      responses:
+        "200":
+          description: Bracket data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bracket"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /kumite-matches:
+    get:
+      summary: List all kumite matches
+      operationId: listKumiteMatches
+      responses:
+        "200":
+          description: List of kumite matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/KumiteMatch"
+
+  /kumite-matches/{matchId}:
+    get:
+      summary: Get a single kumite match
+      operationId: getKumiteMatch
+      parameters:
+        - $ref: "#/components/parameters/MatchId"
+      responses:
+        "200":
+          description: The kumite match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KumiteMatch"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /kumite-matches/{matchId}/points:
+    post:
+      summary: Award points to a competitor
+      operationId: awardKumitePoint
+      parameters:
+        - $ref: "#/components/parameters/MatchId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [side, points]
+              properties:
+                side:
+                  $ref: "#/components/schemas/Side"
+                points:
+                  type: integer
+                  enum: [1, 2, 3]
+      responses:
+        "200":
+          description: Updated match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KumiteMatch"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /kumite-matches/{matchId}/penalties:
+    post:
+      summary: Award a penalty to a competitor
+      operationId: awardKumitePenalty
+      parameters:
+        - $ref: "#/components/parameters/MatchId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [side, category]
+              properties:
+                side:
+                  $ref: "#/components/schemas/Side"
+                category:
+                  type: string
+                  enum: [c1, c2]
+      responses:
+        "200":
+          description: Updated match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KumiteMatch"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /kumite-matches/{matchId}/clock:
+    patch:
+      summary: Start/pause/set the match clock
+      operationId: setKumiteClock
+      parameters:
+        - $ref: "#/components/parameters/MatchId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                running:
+                  type: boolean
+                seconds:
+                  type: integer
+                  minimum: 0
+      responses:
+        "200":
+          description: Updated match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KumiteMatch"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /kumite-matches/{matchId}/hantei:
+    post:
+      summary: Record a referee (hantei) decision
+      operationId: recordHantei
+      parameters:
+        - $ref: "#/components/parameters/MatchId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [side]
+              properties:
+                side:
+                  $ref: "#/components/schemas/Side"
+      responses:
+        "200":
+          description: Updated match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KumiteMatch"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /kata-performances:
+    get:
+      summary: List all kata performances
+      operationId: listKataPerformances
+      responses:
+        "200":
+          description: List of kata performances
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/KataPerformance"
+
+  /kata-performances/{performanceId}:
+    get:
+      summary: Get a single kata performance
+      operationId: getKataPerformance
+      parameters:
+        - $ref: "#/components/parameters/PerformanceId"
+      responses:
+        "200":
+          description: The kata performance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KataPerformance"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /kata-performances/{performanceId}/scores:
+    post:
+      summary: Submit one judge's score
+      operationId: submitKataJudgeScore
+      parameters:
+        - $ref: "#/components/parameters/PerformanceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [judgeIndex, score]
+              properties:
+                judgeIndex:
+                  type: integer
+                  minimum: 0
+                  maximum: 6
+                score:
+                  type: number
+                  minimum: 0
+                  maximum: 10
+      responses:
+        "200":
+          description: Updated performance. finalScore is set once all 7 judges have scored.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KataPerformance"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /kata-performances/{performanceId}/reset:
+    post:
+      summary: Reset all judge scores for a performance
+      operationId: resetKataScores
+      parameters:
+        - $ref: "#/components/parameters/PerformanceId"
+      responses:
+        "200":
+          description: Updated performance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KataPerformance"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /public-board:
+    get:
+      summary: Aggregated live state for the public-facing display
+      operationId: getPublicBoard
+      responses:
+        "200":
+          description: Public board
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicBoard"
+
+components:
+  parameters:
+    MatchId:
+      name: matchId
+      in: path
+      required: true
+      schema:
+        type: string
+    PerformanceId:
+      name: performanceId
+      in: path
+      required: true
+      schema:
+        type: string
+    DivisionId:
+      name: divisionId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: string
+
+  schemas:
+    Side:
+      type: string
+      enum: [aka, ao]
+
+    Division:
+      type: object
+      required: [id, name, discipline, ageGroup, gender, mat]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        discipline:
+          type: string
+          enum: [kumite, kata]
+        ageGroup:
+          type: string
+        weightClass:
+          type: string
+          nullable: true
+        gender:
+          type: string
+        mat:
+          type: integer
+
+    Competitor:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+
+    Penalties:
+      type: object
+      required: [c1, c2]
+      properties:
+        c1:
+          type: integer
+        c2:
+          type: integer
+
+    LogEntry:
+      type: object
+      required: [id, text]
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+
+    KumiteMatch:
+      type: object
+      required:
+        - id
+        - divisionId
+        - mat
+        - round
+        - aka
+        - ao
+        - pointsAka
+        - pointsAo
+        - penaltiesAka
+        - penaltiesAo
+        - senshu
+        - clockSeconds
+        - clockRunning
+        - status
+        - winner
+        - endReason
+        - log
+      properties:
+        id:
+          type: string
+        divisionId:
+          type: string
+        mat:
+          type: integer
+        round:
+          type: string
+        aka:
+          $ref: "#/components/schemas/Competitor"
+        ao:
+          $ref: "#/components/schemas/Competitor"
+        pointsAka:
+          type: integer
+        pointsAo:
+          type: integer
+        penaltiesAka:
+          $ref: "#/components/schemas/Penalties"
+        penaltiesAo:
+          $ref: "#/components/schemas/Penalties"
+        senshu:
+          $ref: "#/components/schemas/Side"
+          nullable: true
+        clockSeconds:
+          type: integer
+        clockRunning:
+          type: boolean
+        status:
+          type: string
+          enum: [in_progress, ended]
+        winner:
+          $ref: "#/components/schemas/Side"
+          nullable: true
+        endReason:
+          type: string
+          nullable: true
+          enum: [points, time, hantei, disqualification]
+        log:
+          type: array
+          items:
+            $ref: "#/components/schemas/LogEntry"
+
+    KataPerformance:
+      type: object
+      required:
+        - id
+        - divisionId
+        - mat
+        - round
+        - competitor
+        - judgeScores
+        - finalScore
+        - status
+      properties:
+        id:
+          type: string
+        divisionId:
+          type: string
+        mat:
+          type: integer
+        round:
+          type: string
+        competitor:
+          $ref: "#/components/schemas/Competitor"
+        judgeScores:
+          type: array
+          minItems: 7
+          maxItems: 7
+          items:
+            type: number
+            nullable: true
+        finalScore:
+          type: number
+          nullable: true
+        status:
+          type: string
+          enum: [scoring, scored]
+
+    PoolStanding:
+      type: object
+      required: [competitor, wins, losses]
+      properties:
+        competitor:
+          type: string
+        wins:
+          type: integer
+        losses:
+          type: integer
+
+    EliminationMatch:
+      type: object
+      required: [a, b, winner]
+      properties:
+        a:
+          type: string
+        b:
+          type: string
+        winner:
+          type: string
+          nullable: true
+
+    EliminationRound:
+      type: object
+      required: [round, matches]
+      properties:
+        round:
+          type: string
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/EliminationMatch"
+
+    Bracket:
+      type: object
+      required: [pool, elimination]
+      properties:
+        pool:
+          type: array
+          items:
+            $ref: "#/components/schemas/PoolStanding"
+        elimination:
+          type: array
+          items:
+            $ref: "#/components/schemas/EliminationRound"
+
+    PublicKumiteEntry:
+      type: object
+      required: [id, mat, round, aka, ao, pointsAka, pointsAo, clockSeconds, status, winner]
+      properties:
+        id:
+          type: string
+        mat:
+          type: integer
+        round:
+          type: string
+        aka:
+          type: string
+        ao:
+          type: string
+        pointsAka:
+          type: integer
+        pointsAo:
+          type: integer
+        clockSeconds:
+          type: integer
+        status:
+          type: string
+          enum: [in_progress, ended]
+        winner:
+          $ref: "#/components/schemas/Side"
+          nullable: true
+
+    PublicKataEntry:
+      type: object
+      required: [id, mat, round, competitor, finalScore, status]
+      properties:
+        id:
+          type: string
+        mat:
+          type: integer
+        round:
+          type: string
+        competitor:
+          type: string
+        finalScore:
+          type: number
+          nullable: true
+        status:
+          type: string
+          enum: [scoring, scored]
+
+    PublicBoard:
+      type: object
+      required: [kumite, kata]
+      properties:
+        kumite:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicKumiteEntry"
+        kata:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicKataEntry"
