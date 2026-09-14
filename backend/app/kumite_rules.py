@@ -1,5 +1,5 @@
 from app.models import KumiteMatch, LogEntry
-from app.store import make_log_id
+from app.repository import make_log_id
 
 
 def _push_log(match: KumiteMatch, text: str) -> None:

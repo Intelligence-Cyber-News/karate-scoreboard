@@ -1,9 +1,19 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.repository import init_db
 from app.routers import divisions, kata, kumite, public
 
-app = FastAPI(title="Karate Scoreboard API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(title="Karate Scoreboard API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
